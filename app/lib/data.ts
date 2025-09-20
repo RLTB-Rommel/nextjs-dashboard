@@ -142,9 +142,9 @@ export async function fetchInvoicesPages(query: string) {
   }
 }
 
-export async function fetchInvoiceById(id: string) {
+export async function fetchInvoiceById(id: string): Promise<InvoiceForm | null> {
   try {
-    const data = await sql<InvoiceForm[]>`
+    const rows = await sql<InvoiceForm[]>`
       SELECT
         invoices.id,
         invoices.customer_id,
@@ -154,16 +154,16 @@ export async function fetchInvoiceById(id: string) {
       WHERE invoices.id = ${id};
     `;
 
-    const invoice = data.map((invoice) => ({
-      ...invoice,
-      // Convert amount from cents to dollars
-      amount: invoice.amount / 100,
-    }));
+    if (rows.length === 0) return null;
 
-    return invoice[0];
+    const inv = rows[0];
+    return {
+      ...inv,
+      amount: inv.amount / 100, // convert cents to dollars
+    };
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch invoice.');
+    console.error('Database Error (fetchInvoiceById):', error);
+    return null;
   }
 }
 
