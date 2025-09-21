@@ -26,7 +26,6 @@ export type State = {
   message?: string | null;
 };
 
-
 export async function createInvoice(
   prevState: State,
   formData: FormData
@@ -63,14 +62,18 @@ export async function createInvoice(
 }
 
 
-export async function updateInvoice(id: string, formData: FormData) {
+export async function updateInvoice(
+  id: string,
+  formData: FormData
+): Promise<void> {
   const customerId = String(formData.get('customerId') ?? '');
   const amountRaw = formData.get('amount');
   const status = String(formData.get('status') ?? 'pending');
 
   const amount = Number(amountRaw);
+
   if (!id || !customerId || !Number.isFinite(amount) || amount <= 0 || !status) {
-    return { message: 'Invalid form submission. Please check all fields.' };
+    redirect(`/dashboard/invoices/${id}/edit?error=invalid`);
   }
 
   const amountInCents = Math.round((amount + Number.EPSILON) * 100);
@@ -85,34 +88,40 @@ export async function updateInvoice(id: string, formData: FormData) {
     `;
   } catch (error) {
     console.error(error);
-    return { message: 'Database Error: Failed to Update Invoice.' };
+
+    redirect(`/dashboard/invoices/${id}/edit?error=update-failed`);
   }
 
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
 
-export async function deleteInvoice(formData: FormData) {
-  const id = formData.get('id') as string | null;
-  if (!id) return { message: 'Missing invoice id.' };
+export async function deleteInvoice(formData: FormData): Promise<void> {
+  const id = (formData.get('id') as string | null)?.trim() || null;
+
+  if (!id) {
+    redirect('/dashboard/invoices?error=missing-id');
+  }
 
   try {
     await sql`DELETE FROM invoices WHERE id = ${id}`;
   } catch (error) {
     console.error(error);
-    return { message: 'Database Error: Failed to Delete Invoice.' };
+    redirect('/dashboard/invoices?error=delete-failed');
   }
 
   revalidatePath('/dashboard/invoices');
+  redirect('/dashboard/invoices');
 }
-
 
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData
-) {
+): Promise<string | undefined> {
   try {
-    await signIn('credentials', formData); // NextAuth v5
+    await signIn('credentials', formData); 
+
+    return undefined;
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
