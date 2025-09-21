@@ -1,5 +1,0 @@
-{
-  "redirects": [
-    { "source": "/login", "destination": "/api/auth/signin", "permanent": false }
-  ]
-}
