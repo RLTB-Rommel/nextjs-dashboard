@@ -10,6 +10,7 @@ import { AuthError } from 'next-auth';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
+/* ----------------------------- Validation ----------------------------- */
 const FormSchema = z.object({
   customerId: z.string().min(1, 'Customer is required'),
   amount: z.coerce.number().gt(0, 'Amount must be > 0'),
@@ -17,6 +18,7 @@ const FormSchema = z.object({
 });
 const CreateInvoice = FormSchema;
 
+/* ------------------------------- Types -------------------------------- */
 export type State = {
   errors?: {
     customerId?: string[];
@@ -26,6 +28,7 @@ export type State = {
   message?: string | null;
 };
 
+/* --------------------------- Create Invoice --------------------------- */
 export async function createInvoice(
   prevState: State,
   formData: FormData
@@ -61,7 +64,7 @@ export async function createInvoice(
   redirect('/dashboard/invoices');
 }
 
-
+/* --------------------------- Update Invoice --------------------------- */
 export async function updateInvoice(
   id: string,
   formData: FormData
@@ -88,7 +91,6 @@ export async function updateInvoice(
     `;
   } catch (error) {
     console.error(error);
-
     redirect(`/dashboard/invoices/${id}/edit?error=update-failed`);
   }
 
@@ -96,6 +98,7 @@ export async function updateInvoice(
   redirect('/dashboard/invoices');
 }
 
+/* --------------------------- Delete Invoice --------------------------- */
 export async function deleteInvoice(formData: FormData): Promise<void> {
   const id = (formData.get('id') as string | null)?.trim() || null;
 
@@ -114,13 +117,13 @@ export async function deleteInvoice(formData: FormData): Promise<void> {
   redirect('/dashboard/invoices');
 }
 
+/* --------------------------- Authenticate ----------------------------- */
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData
 ): Promise<string | undefined> {
   try {
-    await signIn('credentials', formData); 
-
+    await signIn('credentials', formData); // NextAuth v5
     return undefined;
   } catch (error) {
     if (error instanceof AuthError) {
