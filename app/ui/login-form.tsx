@@ -81,7 +81,8 @@ export default function LoginForm() {
         {/* Pass callback URL to the action (NextAuth respects it) */}
         <input type="hidden" name="redirectTo" value={callbackUrl} />
 
-        <Button className="mt-4 w-full" aria-disabled={isPending}>
+        {/*<Button className="mt-4 w-full" aria-disabled={isPending}>*/}
+        <Button type="submit" className="mt-4 w-full" disabled={isPending}>
           {isPending ? 'Logging in…' : (
             <>
               Log in <ArrowRightIcon className="ml-auto h-5 w-5 text-gray-50" />
