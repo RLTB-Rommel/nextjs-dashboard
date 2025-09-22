@@ -10,7 +10,6 @@ import { AuthError } from 'next-auth';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
-/* ----------------------------- Validation ----------------------------- */
 const FormSchema = z.object({
   customerId: z.string().min(1, 'Customer is required'),
   amount: z.coerce.number().gt(0, 'Amount must be > 0'),
@@ -18,21 +17,19 @@ const FormSchema = z.object({
 });
 const CreateInvoice = FormSchema;
 
-/* ------------------------------- Types -------------------------------- */
 export type State = {
   errors?: {
     customerId?: string[];
     amount?: string[];
     status?: string[];
   };
-  message?: string | null;
+  message: string | null;
 };
 
-/* --------------------------- Create Invoice --------------------------- */
 export async function createInvoice(
   prevState: State,
   formData: FormData
-): Promise<State | void> {
+): Promise<State> {
   const validated = CreateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
@@ -64,7 +61,6 @@ export async function createInvoice(
   redirect('/dashboard/invoices');
 }
 
-/* --------------------------- Update Invoice --------------------------- */
 export async function updateInvoice(
   id: string,
   formData: FormData
@@ -98,7 +94,6 @@ export async function updateInvoice(
   redirect('/dashboard/invoices');
 }
 
-/* --------------------------- Delete Invoice --------------------------- */
 export async function deleteInvoice(formData: FormData): Promise<void> {
   const id = (formData.get('id') as string | null)?.trim() || null;
 
@@ -117,7 +112,6 @@ export async function deleteInvoice(formData: FormData): Promise<void> {
   redirect('/dashboard/invoices');
 }
 
-/* --------------------------- Authenticate ----------------------------- */
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData

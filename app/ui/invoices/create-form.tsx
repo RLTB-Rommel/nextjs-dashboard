@@ -24,7 +24,7 @@ function SubmitButton() {
 }
 
 export default function Form({ customers }: { customers: CustomerField[] }) {
-  const [state, formAction] = useFormState(createInvoice, initialState);
+  const [state, formAction] = useFormState<State, FormData>(createInvoice, initialState);
 
   return (
     <form action={formAction} noValidate>
