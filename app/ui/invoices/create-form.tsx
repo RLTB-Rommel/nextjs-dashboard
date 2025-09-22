@@ -14,6 +14,13 @@ import { useFormState, useFormStatus } from 'react-dom';
 
 const initialState: State = { message: null, errors: {} };
 
+const createInvoiceAction: (
+  state: State,
+  payload: FormData
+) => Promise<State> = async (state, formData) => {
+  return await createInvoice(state, formData);
+};
+
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -24,7 +31,10 @@ function SubmitButton() {
 }
 
 export default function Form({ customers }: { customers: CustomerField[] }) {
-  const [state, formAction] = useFormState<State, FormData>(createInvoice, initialState);
+  const [state, formAction] = useFormState<State, FormData>(
+    createInvoiceAction,
+    initialState
+  );
 
   return (
     <form action={formAction} noValidate>
