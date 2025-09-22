@@ -8,48 +8,45 @@ import { z } from 'zod';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 
-// Use your pooled Neon URL (POSTGRES_URL / DATABASE_URL). SSL required on Neon.
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
-
-
-const InvoiceSchema = z.object({
+/* ----------------------------- Validation ----------------------------- */
+const FormSchema = z.object({
   customerId: z.string().min(1, 'Customer is required'),
   amount: z.coerce.number().gt(0, 'Amount must be > 0'),
   status: z.enum(['pending', 'paid']).default('pending'),
 });
+const CreateInvoice = FormSchema;
 
-
+/* ------------------------------- Types -------------------------------- */
 export type State = {
   errors?: {
     customerId?: string[];
     amount?: string[];
     status?: string[];
   };
-  message: string | null;
+  message?: string | null;
 };
 
-export const initialState: State = { message: null, errors: {} };
-
-
+/* --------------------------- Create Invoice --------------------------- */
 export async function createInvoice(
-  _prevState: State,
+  prevState: State,
   formData: FormData
-): Promise<State> {
-  const parsed = InvoiceSchema.safeParse({
+): Promise<State | void> {
+  const validated = CreateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
     status: formData.get('status'),
   });
 
-  if (!parsed.success) {
+  if (!validated.success) {
     return {
-      errors: parsed.error.flatten().fieldErrors,
-      message: 'Missing fields. Failed to create invoice.',
+      errors: validated.error.flatten().fieldErrors,
+      message: 'Missing Fields. Failed to Create Invoice.',
     };
   }
 
-  const { customerId, amount, status } = parsed.data;
+  const { customerId, amount, status } = validated.data;
   const amountInCents = Math.round((amount + Number.EPSILON) * 100);
   const date = new Date().toISOString().split('T')[0];
 
@@ -59,15 +56,15 @@ export async function createInvoice(
       VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
     `;
   } catch (error) {
-    console.error('[createInvoice] DB error:', error);
-    return { message: 'Database error. Failed to create invoice.', errors: {} };
+    console.error(error);
+    return { message: 'Database Error: Failed to Create Invoice.' };
   }
 
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
 
-
+/* --------------------------- Update Invoice --------------------------- */
 export async function updateInvoice(
   id: string,
   formData: FormData
@@ -77,6 +74,7 @@ export async function updateInvoice(
   const status = String(formData.get('status') ?? 'pending');
 
   const amount = Number(amountRaw);
+
   if (!id || !customerId || !Number.isFinite(amount) || amount <= 0 || !status) {
     redirect(`/dashboard/invoices/${id}/edit?error=invalid`);
   }
@@ -92,7 +90,7 @@ export async function updateInvoice(
       WHERE id = ${id}
     `;
   } catch (error) {
-    console.error('[updateInvoice] DB error:', error);
+    console.error(error);
     redirect(`/dashboard/invoices/${id}/edit?error=update-failed`);
   }
 
@@ -100,7 +98,7 @@ export async function updateInvoice(
   redirect('/dashboard/invoices');
 }
 
-
+/* --------------------------- Delete Invoice --------------------------- */
 export async function deleteInvoice(formData: FormData): Promise<void> {
   const id = (formData.get('id') as string | null)?.trim() || null;
 
@@ -111,7 +109,7 @@ export async function deleteInvoice(formData: FormData): Promise<void> {
   try {
     await sql`DELETE FROM invoices WHERE id = ${id}`;
   } catch (error) {
-    console.error('[deleteInvoice] DB error:', error);
+    console.error(error);
     redirect('/dashboard/invoices?error=delete-failed');
   }
 
@@ -119,9 +117,9 @@ export async function deleteInvoice(formData: FormData): Promise<void> {
   redirect('/dashboard/invoices');
 }
 
-
+/* --------------------------- Authenticate ----------------------------- */
 export async function authenticate(
-  _prevState: string | undefined,
+  prevState: string | undefined,
   formData: FormData
 ): Promise<string | undefined> {
   try {
